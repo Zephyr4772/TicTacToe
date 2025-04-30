@@ -17,6 +17,10 @@ A minimalistic browser-based Tic-Tac-Toe game — but with a twist:
 3. Take turns placing X and O.
 4. Play until someone wins — because there’s no draw logic 😈
 
+## live demo
+
+1. https://sinhal-zephyr.netlify.app  <------- game link
+
 
 ## 📁 Tech Stack
 
