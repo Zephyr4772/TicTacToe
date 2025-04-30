@@ -1,0 +1,431 @@
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tic Tac Toe Game</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"
+  />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Helvetica&display=swap');
+    /* Draw switch  */
+    .dot {
+      transition: transform 0.3s ease;
+      transform: translateX(0);
+      position: absolute;
+      left: 0.25rem;
+      top: 0.25rem;
+      width: 1rem;
+      height: 1rem;
+      border-radius: 9999px;
+      background-color: rgb(255, 255, 255);
+    }
+    input:checked + div {
+      background-color: #4ed16a; 
+    }
+    input:checked + div .dot {
+      transform: translateX(1.5rem);
+    }
+    /* Confetti Fooooo */
+    #confetti-container {
+      pointer-events: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      overflow: visible;
+      z-index: 9999;
+      display: none;
+    }
+    .confetti-piece {
+      position: absolute;
+      width: 6px;
+      height: 10px;
+      background-color: #facc15; 
+      opacity: 0.9;
+      border-radius: 2px;
+      animation: confetti-fall 1.2s forwards ease-out;
+    }
+    @keyframes confetti-fall {
+      0% {
+        transform: translateY(0) rotate(0deg);
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(80vh) rotate(360deg);
+        opacity: 0;
+      }
+    }
+  </style>
+</head>
+<body class="bg-black flex flex-col items-center justify-center min-h-screen font-['Helvetica'] select-none p-4 relative">
+  <div class="w-[320px] h-[320px] relative grid grid-cols-3 grid-rows-3 gap-0 border border-black">
+    <!-- Vertical lines -->
+    <div class="absolute top-0 bottom-0 left-[33.33%] w-[3px] bg-white pointer-events-none"></div>
+    <div class="absolute top-0 bottom-0 right-[33.33%] w-[3px] bg-white pointer-events-none"></div>
+    <!-- Horizontal lines -->
+    <div class="absolute left-0 right-0 top-[33.33%] h-[3px] bg-white pointer-events-none"></div>
+    <div class="absolute left-0 right-0 bottom-[33.33%] h-[3px] bg-white pointer-events-none"></div>
+
+    <!-- 9 cells -->
+    <button data-cell="0" class="text-white text-[96px] font-light flex items-center justify-center focus:outline-none"></button>
+    <button data-cell="1" class="text-white text-[96px] font-light flex items-center justify-center focus:outline-none"></button>
+    <button data-cell="2" class="text-white text-[96px] font-light flex items-center justify-center focus:outline-none"></button>
+    <button data-cell="3" class="text-white text-[96px] font-light flex items-center justify-center focus:outline-none"></button>
+    <button data-cell="4" class="text-white text-[96px] font-light flex items-center justify-center focus:outline-none"></button>
+    <button data-cell="5" class="text-white text-[96px] font-light flex items-center justify-center focus:outline-none"></button>
+    <button data-cell="6" class="text-white text-[96px] font-light flex items-center justify-center focus:outline-none"></button>
+    <button data-cell="7" class="text-white text-[96px] font-light flex items-center justify-center focus:outline-none"></button>
+    <button data-cell="8" class="text-white text-[96px] font-light flex items-center justify-center focus:outline-none"></button>
+  </div>
+
+  <div class="w-[320px] mt-6 flex items-center justify-between text-white text-[18px] font-normal">
+    <div class="flex flex-col items-center space-y-1">
+      <div>PLAYER (x)</div>
+      <div id="player-score" class="text-[32px] font-light">0</div>
+    </div>
+    <div class="flex flex-col items-center space-y-1">
+      <div>TIE</div>
+      <div id="tie-score" class="text-[32px] font-light">0</div>
+    </div>
+    <div class="flex flex-col items-center space-y-1">
+      <div>COMPUTER (O)</div>
+      <div id="computer-score" class="text-[32px] font-light">0</div>
+    </div>
+    <button id="mode-toggle" aria-label="Toggle 1P / 2P mode" class="flex flex-col items-center space-y-1 text-gray-600 focus:outline-none">
+      <i class="fas fa-user fa-lg"></i>
+      <div id="mode-label" class="text-[14px] font-light">1P</div>
+    </button>
+  </div>
+
+  <div class="w-[320px] mt-6 flex items-center justify-center space-x-3 text-white text-[16px] font-normal">
+    <label for="nodraw-switch" class="flex items-center cursor-pointer select-none">
+      <span class="mr-2">NoDraw Mode</span>
+      <input type="checkbox" id="nodraw-switch" class="sr-only" />
+      <div class="w-12 h-6 bg-gray-600 rounded-full shadow-inner relative">
+        <div class="dot"></div>
+      </div>
+    </label>
+  </div>
+
+  <!-- Confetti container -->
+  <div id="confetti-container"></div>
+
+  <!-- Audio  -->
+  <audio id="sound-x" src="https://actions.google.com/sounds/v1/cartoon/pop.ogg" preload="auto"></audio>
+  <audio id="sound-o" src="https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg" preload="auto"></audio>
+  <audio id="sound-computer-win" src="https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg" preload="auto"></audio>
+  <audio id="sound-player-win" src="https://actions.google.com/sounds/v1/cartoon/slide_whistle_to_drum_hit.ogg" preload="auto"></audio>
+
+  <script>
+    const cells = document.querySelectorAll('[data-cell]');
+    const playerScoreEl = document.getElementById('player-score');
+    const tieScoreEl = document.getElementById('tie-score');
+    const computerScoreEl = document.getElementById('computer-score');
+    const modeToggleBtn = document.getElementById('mode-toggle');
+    const modeLabel = document.getElementById('mode-label');
+    const noDrawSwitch = document.getElementById('nodraw-switch');
+    const confettiContainer = document.getElementById('confetti-container');
+
+    const soundX = document.getElementById('sound-x');
+    const soundO = document.getElementById('sound-o');
+    const soundComputerWin = document.getElementById('sound-computer-win');
+    const soundPlayerWin = document.getElementById('sound-player-win');
+
+    // Game variables
+    let board = Array(9).fill(null);
+    let currentPlayer = 'X'; // X always starts
+    let gameActive = true;
+    let mode = '1P'; // '1P' or '2P'
+    let noDraw = false;
+    let scores = {
+      player: 0,
+      computer: 0,
+      tie: 0
+    };
+
+    // For NoDraw mode: track placed positions in order for each player
+    let placedPositions = {
+      X: [],
+      O: []
+    };
+
+    // Load scores, mode, and noDraw from sessionStorage if available
+    if (sessionStorage.getItem('ticTacToeScores')) {
+      scores = JSON.parse(sessionStorage.getItem('ticTacToeScores'));
+      playerScoreEl.textContent = scores.player;
+      computerScoreEl.textContent = scores.computer;
+      tieScoreEl.textContent = scores.tie;
+    }
+    if (sessionStorage.getItem('ticTacToeMode')) {
+      mode = sessionStorage.getItem('ticTacToeMode');
+      modeLabel.textContent = mode;
+    }
+    if (sessionStorage.getItem('ticTacToeNoDraw')) {
+      noDraw = sessionStorage.getItem('ticTacToeNoDraw') === 'true';
+      noDrawSwitch.checked = noDraw;
+    }
+
+    // Winning combinations
+    const winningCombos = [
+      [0,1,2],[3,4,5],[6,7,8], // rows
+      [0,3,6],[1,4,7],[2,5,8], // columns
+      [0,4,8],[2,4,6]          // diagonals
+    ];
+
+    function playSound(sound) {
+      sound.currentTime = 0;
+      sound.play();
+    }
+
+    function checkWin(player) {
+      return winningCombos.some(combo => {
+        return combo.every(index => board[index] === player);
+      });
+    }
+
+    function checkTie() {
+      return board.every(cell => cell !== null);
+    }
+
+    function updateScores() {
+      playerScoreEl.textContent = scores.player;
+      computerScoreEl.textContent = scores.computer;
+      tieScoreEl.textContent = scores.tie;
+      sessionStorage.setItem('ticTacToeScores', JSON.stringify(scores));
+    }
+
+    function resetBoard() {
+      board.fill(null);
+      cells.forEach(cell => (cell.textContent = ''));
+      gameActive = true;
+      currentPlayer = 'X';
+      placedPositions = { X: [], O: [] };
+    }
+
+    // Minimax algorithm for computer AI
+    function minimax(newBoard, player) {
+      const availSpots = newBoard.map((v,i) => v === null ? i : null).filter(i => i !== null);
+
+      if (checkWinForBoard(newBoard, 'X')) {
+        return { score: -10 };
+      } else if (checkWinForBoard(newBoard, 'O')) {
+        return { score: 10 };
+      } else if (availSpots.length === 0) {
+        return { score: 0 };
+      }
+
+      const moves = [];
+
+      for (let i = 0; i < availSpots.length; i++) {
+        const move = {};
+        move.index = availSpots[i];
+        newBoard[availSpots[i]] = player;
+
+        if (player === 'O') {
+          const result = minimax(newBoard, 'X');
+          move.score = result.score;
+        } else {
+          const result = minimax(newBoard, 'O');
+          move.score = result.score;
+        }
+
+        newBoard[availSpots[i]] = null;
+        moves.push(move);
+      }
+
+      let bestMove;
+      if (player === 'O') {
+        let bestScore = -Infinity;
+        for (let i = 0; i < moves.length; i++) {
+          if (moves[i].score > bestScore) {
+            bestScore = moves[i].score;
+            bestMove = moves[i];
+          }
+        }
+      } else {
+        let bestScore = Infinity;
+        for (let i = 0; i < moves.length; i++) {
+          if (moves[i].score < bestScore) {
+            bestScore = moves[i].score;
+            bestMove = moves[i];
+          }
+        }
+      }
+      return bestMove;
+    }
+
+    // Helper to check win on any board state (not just current)
+    function checkWinForBoard(boardToCheck, player) {
+      return winningCombos.some(combo => {
+        return combo.every(index => boardToCheck[index] === player);
+      });
+    }
+
+    // Remove oldest placed icon for player in NoDraw mode
+    function removeOldestIcon(player) {
+      if (placedPositions[player].length === 0) return;
+      const oldestIndex = placedPositions[player].shift();
+      board[oldestIndex] = null;
+      cells[oldestIndex].textContent = '';
+    }
+
+    // Place icon with NoDraw logic
+    function placeIcon(index, player) {
+      if (noDraw) {
+        if (placedPositions[player].length === 3) {
+          removeOldestIcon(player);
+        }
+        placedPositions[player].push(index);
+      }
+      board[index] = player;
+      cells[index].textContent = player;
+    }
+
+    // Minimal confetti burst for player win
+    function confettiBurst() {
+      const confettiCount = 80;
+      confettiContainer.style.display = 'block';
+
+      for (let i = 0; i < confettiCount; i++) {
+        const confetti = document.createElement('div');
+        confetti.classList.add('confetti-piece');
+        confetti.style.left = `${Math.random() * 100}vw`;
+        confetti.style.backgroundColor = `hsl(${Math.random() * 360}, 90%, 60%)`; // full rainbow
+        confetti.style.animationDelay = `${Math.random() * 0.5}s`;
+        confetti.style.transform = `rotate(${Math.random() * 360}deg)`;
+        confettiContainer.appendChild(confetti);
+
+        // Remove confetti after animation
+        confetti.addEventListener('animationend', () => {
+          confetti.remove();
+          if (confettiContainer.children.length === 0) {
+            confettiContainer.style.display = 'none';
+          }
+        });
+      }
+    }
+
+    function computerMove() {
+      const emptyIndices = board.map((v,i) => v === null ? i : null).filter(i => i !== null);
+      if (emptyIndices.length === 0) return;
+
+      // Use minimax to find best move
+      const bestMove = minimax(board.slice(), 'O');
+      const choice = bestMove.index;
+
+      placeIcon(choice, 'O');
+      playSound(soundO);
+
+      if (checkWin('O')) {
+        scores.computer++;
+        updateScores();
+        playSound(soundComputerWin);
+        gameActive = false;
+        setTimeout(() => resetBoard(), 1500);
+        return;
+      }
+      if (checkTie()) {
+        scores.tie++;
+        updateScores();
+        gameActive = false;
+        setTimeout(() => resetBoard(), 1500);
+        return;
+      }
+      currentPlayer = 'X';
+    }
+
+    function handleClick(e) {
+      if (!gameActive) return;
+      const cell = e.target;
+      const index = Number(cell.getAttribute('data-cell'));
+      if (board[index] !== null) return;
+
+      if (mode === '1P') {
+        // Player X move
+        if (currentPlayer !== 'X') return;
+
+        placeIcon(index, 'X');
+        playSound(soundX);
+
+        if (checkWin('X')) {
+          scores.player++;
+          updateScores();
+          playSound(soundPlayerWin);
+          confettiBurst();
+          gameActive = false;
+          setTimeout(() => resetBoard(), 1500);
+          return;
+        }
+        if (checkTie()) {
+          scores.tie++;
+          updateScores();
+          gameActive = false;
+          setTimeout(() => resetBoard(), 1500);
+          return;
+        }
+        currentPlayer = 'O';
+        // Computer move after short delay
+        setTimeout(() => {
+          if (gameActive) computerMove();
+        }, 600);
+      } else {
+        // 2P mode
+        placeIcon(index, currentPlayer);
+        if (currentPlayer === 'X') playSound(soundX);
+        else playSound(soundO);
+
+        if (checkWin(currentPlayer)) {
+          if (currentPlayer === 'X') {
+            scores.player++;
+            playSound(soundPlayerWin);
+            confettiBurst();
+          } else {
+            scores.computer++;
+            playSound(soundComputerWin);
+          }
+          updateScores();
+          gameActive = false;
+          setTimeout(() => resetBoard(), 1500);
+          return;
+        }
+        if (checkTie()) {
+          scores.tie++;
+          updateScores();
+          gameActive = false;
+          setTimeout(() => resetBoard(), 1500);
+          return;
+        }
+        currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+      }
+    }
+
+    function toggleMode() {
+      if (mode === '1P') {
+        mode = '2P';
+      } else {
+        mode = '1P';
+      }
+      modeLabel.textContent = mode;
+      sessionStorage.setItem('ticTacToeMode', mode);
+      resetBoard();
+    }
+
+    noDrawSwitch.addEventListener('change', () => {
+      noDraw = noDrawSwitch.checked;
+      sessionStorage.setItem('ticTacToeNoDraw', noDraw);
+      resetBoard();
+    });
+
+    // Add event listeners
+    cells.forEach(cell => cell.addEventListener('click', handleClick));
+    modeToggleBtn.addEventListener('click', toggleMode);
+
+    // Reset board on page load
+    resetBoard();
+  </script>
+</body>
+</html>
